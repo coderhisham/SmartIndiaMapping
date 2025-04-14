@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart India Mapping - Interactive Map</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#60a5fa',
+                        'primary-dark': '#3b82f6',
+                        'primary-light': '#93c5fd',
+                        secondary: '#10b981',
+                        'secondary-dark': '#059669',
+                        accent: '#a78bfa',
+                        dark: '#0f172a',
+                        darker: '#020617',
+                        'gray-800': '#1f2937',
+                        'gray-900': '#111827',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Custom Styles */
+        .map-container {
+            height: calc(100vh - 64px);
+        }
+        
+        .control-panel {
+            background-color: rgba(31, 41, 55, 0.95);
+            backdrop-filter: blur(4px);
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+        }
+        
+        .control-panel-header {
+            border-bottom: 1px solid rgba(75, 85, 99, 0.4);
+        }
+        
+        .leaflet-container {
+            background-color: #111827;
+        }
+        
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+        
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        
+        @keyframes slideUp {
+            0% { transform: translateY(20px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        
+        .animate-slideUp {
+            animation: slideUp 0.4s ease-out forwards;
+        }
+        
+        .filter-option {
+            transition: all 0.3s ease;
+        }
+        
+        .filter-option:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+        
+        .filter-option.active {
+            background-color: rgba(59, 130, 246, 0.2);
+            border-left: 3px solid #3b82f6;
+        }
+        
+        /* Custom Leaflet Controls */
+        .leaflet-control-layers, 
+        .leaflet-bar {
+            background-color: #1f2937 !important;
+            border: none !important;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.4) !important;
+        }
+        
+        .leaflet-control-layers-toggle, 
+        .leaflet-touch .leaflet-control-layers-toggle {
+            background-color: #1f2937 !important;
+        }
+        
+        .leaflet-bar a {
+            background-color: #1f2937 !important;
+            color: #93c5fd !important;
+            border-bottom: 1px solid #374151 !important;
+        }
+        
+        .leaflet-bar a:hover {
+            background-color: #374151 !important;
+        }
+        
+        .leaflet-control-zoom-in, 
+        .leaflet-control-zoom-out {
+            color: #93c5fd !important;
+        }
+        
+        .leaflet-popup-content-wrapper {
+            background-color: #1f2937 !important;
+            color: #e5e7eb !important;
+            border-radius: 0.5rem !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3) !important;
+        }
+        
+        .leaflet-popup-tip {
+            background-color: #1f2937 !important;
+        }
+        
+        /* Loading animation */
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(75, 85, 99, 0.3);
+            border-radius: 50%;
+            border-top-color: #3b82f6;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .btn-filter {
+            background-color: #1f2937;
+            border: 1px solid #374151;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-filter:hover {
+            background-color: #2d3748;
+            border-color: #4b5563;
+        }
+        
+        .btn-filter.active {
+            background-color: #3b82f6;
+            border-color: #3b82f6;
+            color: white;
+        }
+        
+        /* Legend styles */
+        .map-legend {
+            background-color: rgba(31, 41, 55, 0.9);
+            backdrop-filter: blur(4px);
+            border-radius: 0.5rem;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+<body class="bg-dark text-gray-200">
+    <!-- Navigation -->
+    <nav class="bg-gray-900 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="index.html" class="flex items-center">
+                        <i class="fas fa-map-marked-alt text-primary-light text-2xl mr-3"></i>
+                        <span class="text-xl font-bold">Smart India <span class="text-primary-light">Mapping</span></span>
+                    </a>
+                    <div class="hidden md:ml-10 md:flex md:space-x-8">
+                        <a href="index.html" class="nav-link px-3 py-2 text-gray-300 hover:text-white font-medium">Home</a>
+                        <a href="map.html" class="nav-link active px-3 py-2 text-white font-medium">Interactive Map</a>
+                        <a href="admin.html" class="nav-link px-3 py-2 text-gray-300 hover:text-white font-medium">Admin Panel</a>
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center">
+                    <button id="toggleFullMap" class="px-4 py-2 mr-3 rounded-md border border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors">
+                        <i class="fas fa-expand-arrows-alt mr-2"></i>Full Map
+                    </button>
+                </div>
+                <div class="flex items-center md:hidden">
+                    <button id="mobile-menu-button" class="text-gray-300 hover:text-white">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile menu -->
+        <div id="mobile-menu" class="hidden md:hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-gray-900 shadow-lg">
+                <a href="index.html" class="block px-3 py-2 rounded-md text-gray-300 hover:bg-gray-800 hover:text-white font-medium">Home</a>
+                <a href="map.html" class="block px-3 py-2 rounded-md text-white bg-primary-dark font-medium">Interactive Map</a>
+                <a href="admin.html" class="block px-3 py-2 rounded-md text-gray-300 hover:bg-gray-800 hover:text-white font-medium">Admin Panel</a>
+                <div class="mt-4 pt-4 border-t border-gray-700">
+                    <button id="toggleFullMapMobile" class="w-full text-left px-3 py-2 rounded-md text-gray-300 hover:bg-gray-800 hover:text-white font-medium">
+                        <i class="fas fa-expand-arrows-alt mr-2"></i>Toggle Full Map
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Map Container -->
+    <div class="flex h-full relative animate-fadeIn">
+        <!-- Side Panel -->
+        <div id="sidePanel" class="w-full md:w-80 md:min-w-80 p-0 bg-gray-900 absolute md:relative z-10 shadow-xl md:shadow-none transition-all duration-300" style="height: calc(100vh - 64px);">
+            <div class="control-panel h-full flex flex-col overflow-hidden">
+                <!-- Panel Header -->
+                <div class="control-panel-header p-4 flex justify-between items-center">
+                    <h2 class="text-lg font-bold">Data Filters</h2>
+                    <button id="closeSidePanel" class="md:hidden text-gray-400 hover:text-white">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <!-- Panel Content -->
+                <div class="flex-grow overflow-y-auto p-4">
+                    <!-- Resource Type Filter -->
+                    <div class="mb-6 animate-slideUp" style="animation-delay: 0.1s">
+                        <h3 class="text-md font-medium mb-3 text-gray-300">Resource Type</h3>
+                        <div class="space-y-1">
+                            <div class="filter-option active px-3 py-2 rounded-md cursor-pointer">
+                                <div class="flex items-center">
+                                    <div class="w-4 h-4 rounded-sm bg-blue-500 mr-3"></div>
+                                    <span>Schools</span>
+                                </div>
+                            </div>
+                            <div class="filter-option px-3 py-2 rounded-md cursor-pointer">
+                                <div class="flex items-center">
+                                    <div class="w-4 h-4 rounded-sm bg-green-500 mr-3"></div>
+                                    <span>Hospitals</span>
+                                </div>
+                            </div>
+                            <div class="filter-option px-3 py-2 rounded-md cursor-pointer">
+                                <div class="flex items-center">
+                                    <div class="w-4 h-4 rounded-sm bg-purple-500 mr-3"></div>
+                                    <span>Water Resources</span>
+                                </div>
+                            </div>
+                            <div class="filter-option px-3 py-2 rounded-md cursor-pointer">
+                                <div class="flex items-center">
+                                    <div class="w-4 h-4 rounded-sm bg-yellow-500 mr-3"></div>
+                                    <span>Power Stations</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Region Filter -->
+                    <div class="mb-6 animate-slideUp" style="animation-delay: 0.2s">
+                        <h3 class="text-md font-medium mb-3 text-gray-300">Region</h3>
+                        <div class="relative">
+                            <select class="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 appearance-none focus:outline-none focus:ring-2 focus:ring-primary-dark focus:border-transparent">
+                                <option>All Regions</option>
+                                <option>North India</option>
+                                <option>South India</option>
+                                <option>East India</option>
+                                <option>West India</option>
+                                <option>Central India</option>
+                                <option>North East India</option>
+                            </select>
+                            <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                                <i class="fas fa-chevron-down text-gray-400"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Status Filter -->
+                    <div class="mb-6 animate-slideUp" style="animation-delay: 0.3s">
+                        <h3 class="text-md font-medium mb-3 text-gray-300">Status</h3>
+                        <div class="flex flex-wrap gap-2">
+                            <button class="btn-filter active px-3 py-1 rounded-full text-sm">All</button>
+                            <button class="btn-filter px-3 py-1 rounded-full text-sm">Operational</button>
+                            <button class="btn-filter px-3 py-1 rounded-full text-sm">Under Construction</button>
+                            <button class="btn-filter px-3 py-1 rounded-full text-sm">Planned</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Capacity Filter -->
+                    <div class="mb-6 animate-slideUp" style="animation-delay: 0.4s">
+                        <h3 class="text-md font-medium mb-3 text-gray-300">Capacity</h3>
+                        <div>
+                            <label for="capacity" class="text-sm text-gray-400">Minimum capacity</label>
+                            <input type="range" id="capacity" min="0" max="100" value="0" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                            <div class="flex justify-between text-xs text-gray-400 mt-1">
+                                <span>0</span>
+                                <span>25</span>
+                                <span>50</span>
+                                <span>75</span>
+                                <span>100</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Year Established Filter -->
+                    <div class="mb-6 animate-slideUp" style="animation-delay: 0.5s">
+                        <h3 class="text-md font-medium mb-3 text-gray-300">Year Established</h3>
+                        <div class="flex items-center space-x-4">
+                            <div class="flex-1">
+                                <label for="yearFrom" class="text-sm text-gray-400">From</label>
+                                <select id="yearFrom" class="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm">
+                                    <option>Any</option>
+                                    <option>2000</option>
+                                    <option>2005</option>
+                                    <option>2010</option>
+                                    <option>2015</option>
+                                    <option>2020</option>
+                                </select>
+                            </div>
+                            <div class="flex-1">
+                                <label for="yearTo" class="text-sm text-gray-400">To</label>
+                                <select id="yearTo" class="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm">
+                                    <option>Any</option>
+                                    <option>2005</option>
+                                    <option>2010</option>
+                                    <option>2015</option>
+                                    <option>2020</option>
+                                    <option>2023</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Search Filter -->
+                    <div class="mb-6 animate-slideUp" style="animation-delay: 0.6s">
+                        <h3 class="text-md font-medium mb-3 text-gray-300">Search</h3>
+                        <div class="relative">
+                            <input type="text" placeholder="Search by name..." class="w-full bg-gray-800 border border-gray-700 rounded-md pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-dark focus:border-transparent">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-search text-gray-400"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Panel Footer -->
+                <div class="p-4 border-t border-gray-800">
+                    <div class="flex space-x-3">
+                        <button class="flex-1 px-4 py-2 bg-primary-dark text-white rounded-md hover:bg-primary-light transition-colors">
+                            Apply Filters
+                        </button>
+                        <button class="px-4 py-2 border border-gray-700 text-gray-300 rounded-md hover:bg-gray-800 hover:text-white transition-colors">
+                            Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Map Content -->
+        <div class="flex-grow relative">
+            <!-- Toggle Side Panel Button (Mobile) -->
+            <button id="toggleSidePanel" class="absolute top-4 left-4 z-40 md:hidden bg-gray-900 text-white p-3 rounded-md shadow-lg">
+                <i class="fas fa-filter"></i>
+            </button>
+            
+            <!-- Map -->
+            <div id="map" class="map-container w-full"></div>
+            
+            <!-- Map Legend -->
+            <div class="absolute bottom-6 right-6 z-30 map-legend p-3" style="max-width: 200px;">
+                <h4 class="text-sm font-semibold mb-2">Legend</h4>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #3b82f6;"></div>
+                    <span class="text-sm">Schools</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #10b981;"></div>
+                    <span class="text-sm">Hospitals</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #8b5cf6;"></div>
+                    <span class="text-sm">Water Resources</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #f59e0b;"></div>
+                    <span class="text-sm">Power Stations</span>
+                </div>
+            </div>
+            
+            <!-- Loading Indicator -->
+            <div id="loadingIndicator" class="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-70 z-50 hidden">
+                <div class="text-center">
+                    <div class="loading-spinner mx-auto mb-4"></div>
+                    <p class="text-white">Loading map data...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Mobile menu toggle
+        document.getElementById('mobile-menu-button').addEventListener('click', function() {
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenu.classList.toggle('hidden');
+        });
+        
+        // Toggle side panel for mobile
+        document.getElementById('toggleSidePanel').addEventListener('click', function() {
+            const sidePanel = document.getElementById('sidePanel');
+            sidePanel.classList.toggle('translate-x-0');
+            sidePanel.classList.toggle('-translate-x-full');
+        });
+        
+        // Close side panel for mobile
+        document.getElementById('closeSidePanel').addEventListener('click', function() {
+            const sidePanel = document.getElementById('sidePanel');
+            sidePanel.classList.add('-translate-x-full');
+            sidePanel.classList.remove('translate-x-0');
+        });
+        
+        // Toggle full map view
+        document.getElementById('toggleFullMap').addEventListener('click', function() {
+            const sidePanel = document.getElementById('sidePanel');
+            sidePanel.classList.toggle('hidden');
+        });
+        
+        document.getElementById('toggleFullMapMobile').addEventListener('click', function() {
+            const sidePanel = document.getElementById('sidePanel');
+            sidePanel.classList.toggle('hidden');
+        });
+        
+        // Resource type filter toggle
+        document.querySelectorAll('.filter-option').forEach(option => {
+            option.addEventListener('click', function() {
+                if (this.classList.contains('active')) {
+                    this.classList.remove('active');
+                } else {
+                    this.classList.add('active');
+                }
+            });
+        });
+        
+        // Status filter toggle
+        document.querySelectorAll('.btn-filter').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+        
+        // Initialize the map with dark mode styling
+        document.addEventListener('DOMContentLoaded', function() {
+            // Show loading indicator
+            document.getElementById('loadingIndicator').classList.remove('hidden');
+            
+            // Map initialization
+            setTimeout(function() {
+                // Dark mode map styling
+                const darkMode = [
+                    {
+                        "elementType": "geometry",
+                        "stylers": [{ "color": "#242f3e" }]
+                    },
+                    {
+                        "elementType": "labels.text.stroke",
+                        "stylers": [{ "color": "#242f3e" }]
+                    },
+                    {
+                        "elementType": "labels.text.fill",
+                        "stylers": [{ "color": "#746855" }]
+                    },
+                    {
+                        "featureType": "administrative.locality",
+                        "elementType": "labels.text.fill",
+                        "stylers": [{ "color": "#d59563" }]
+                    },
+                    {
+                        "featureType": "poi",
+                        "elementType": "labels.text.fill",
+                        "stylers": [{ "color": "#d59563" }]
+                    },
+                    {
+                        "featureType": "poi.park",
+                        "elementType": "geometry",
+                        "stylers": [{ "color": "#263c3f" }]
+                    },
+                    {
+                        "featureType": "poi.park",
+                        "elementType": "labels.text.fill",
+                        "stylers": [{ "color": "#6b9a76" }]
+                    },
+                    {
+                        "featureType": "road",
+                        "elementType": "geometry",
+                        "stylers": [{ "color": "#38414e" }]
+                    },
+                    {
+                        "featureType": "road",
+                        "elementType": "geometry.stroke",
+                        "stylers": [{ "color": "#212a37" }]
+                    },
+                    {
+                        "featureType": "road",
+                        "elementType": "labels.text.fill",
+                        "stylers": [{ "color": "#9ca5b3" }]
+                    },
+                    {
+                        "featureType": "road.highway",
+                        "elementType": "geometry",
+                        "stylers": [{ "color": "#746855" }]
+                    },
+                    {
+                        "featureType": "road.highway",
+                        "elementType": "geometry.stroke",
+                        "stylers": [{ "color": "#1f2835" }]
+                    },
+                    {
+                        "featureType": "road.highway",
+                        "elementType": "labels.text.fill",
+                        "stylers": [{ "color": "#f3d19c" }]
+                    },
+                    {
+                        "featureType": "water",
+                        "elementType": "geometry",
+                        "stylers": [{ "color": "#17263c" }]
+                    },
+                    {
+                        "featureType": "water",
+                        "elementType": "labels.text.fill",
+                        "stylers": [{ "color": "#515c6d" }]
+                    },
+                    {
+                        "featureType": "water",
+                        "elementType": "labels.text.stroke",
+                        "stylers": [{ "color": "#17263c" }]
+                    }
+                ];
+                
+                // Initialize map
+                const map = L.map('map').setView([20.5937, 78.9629], 5);
+                
+                // Custom dark mode tiles
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                    subdomains: 'abcd',
+                    maxZoom: 19
+                }).addTo(map);
+                
+                // Sample data for schools
+                const schools = [
+                    { lat: 28.6139, lng: 77.2090, name: "Delhi Public School", type: "Primary & Secondary", capacity: 2500, year: 2005 },
+                    { lat: 19.0760, lng: 72.8777, name: "Mumbai International School", type: "Primary & Secondary", capacity: 1800, year: 2008 },
+                    { lat: 12.9716, lng: 77.5946, name: "Bangalore Academy", type: "Secondary", capacity: 1200, year: 2010 },
+                    { lat: 17.3850, lng: 78.4867, name: "Hyderabad School of Excellence", type: "Primary & Secondary", capacity: 2000, year: 2012 },
+                    { lat: 22.5726, lng: 88.3639, name: "Kolkata Grammar School", type: "Primary & Secondary", capacity: 1500, year: 2007 }
+                ];
+                
+                // Sample data for hospitals
+                const hospitals = [
+                    { lat: 28.5355, lng: 77.2100, name: "All India Institute of Medical Sciences", beds: 2500, specialties: "Multi-specialty", year: 1956 },
+                    { lat: 19.1800, lng: 72.8344, name: "Lilavati Hospital", beds: 320, specialties: "Multi-specialty", year: 1978 },
+                    { lat: 13.0067, lng: 77.5945, name: "Manipal Hospital", beds: 600, specialties: "Multi-specialty", year: 1991 },
+                    { lat: 17.4400, lng: 78.5000, name: "Apollo Hospitals", beds: 550, specialties: "Multi-specialty", year: 1983 },
+                    { lat: 22.5400, lng: 88.3700, name: "SSKM Hospital", beds: 1775, specialties: "Multi-specialty", year: 1957 }
+                ];
+                
+                // Sample data for water resources
+                const waterResources = [
+                    { lat: 23.1793, lng: 79.9864, name: "Narmada Dam", type: "Dam", capacity: "97,110 million cubic meter", year: 2006 },
+                    { lat: 16.5161, lng: 79.3096, name: "Nagarjuna Sagar Dam", type: "Dam", capacity: "11,472 million cubic meter", year: 1967 },
+                    { lat: 21.8270, lng: 73.7330, name: "Sardar Sarovar Dam", type: "Dam", capacity: "9,500 million cubic meter", year: 2017 },
+                    { lat: 25.9140, lng: 81.0755, name: "Rihand Dam", type: "Dam", capacity: "10,600 million cubic meter", year: 1962 },
+                    { lat: 16.9975, lng: 73.7838, name: "Koyna Dam", type: "Dam", capacity: "2,797 million cubic meter", year: 1963 }
+                ];
+                
+                // Sample data for power stations
+                const powerStations = [
+                    { lat: 24.2112, lng: 82.6930, name: "Singrauli Super Thermal Power Station", type: "Thermal", capacity: "2000 MW", year: 1982 },
+                    { lat: 22.8300, lng: 86.1800, name: "Tata Power Plant", type: "Thermal", capacity: "4000 MW", year: 1998 },
+                    { lat: 23.3441, lng: 85.3096, name: "Ranchi Power Plant", type: "Hydro", capacity: "600 MW", year: 2008 },
+                    { lat: 31.0704, lng: 77.5700, name: "Nathpa Jhakri Dam", type: "Hydro", capacity: "1500 MW", year: 2004 },
+                    { lat: 19.2312, lng: 72.9840, name: "Tarapur Atomic Power Station", type: "Nuclear", capacity: "1400 MW", year: 1969 }
+                ];
+                
+                // Create custom icons
+                const schoolIcon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div style="background-color: #3b82f6; width: 10px; height: 10px; border-radius: 50%; border: 2px solid #f8fafc;"></div>`,
+                    iconSize: [15, 15],
+                    iconAnchor: [7, 7]
+                });
+                
+                const hospitalIcon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div style="background-color: #10b981; width: 10px; height: 10px; border-radius: 50%; border: 2px solid #f8fafc;"></div>`,
+                    iconSize: [15, 15],
+                    iconAnchor: [7, 7]
+                });
+                
+                const waterIcon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div style="background-color: #8b5cf6; width: 10px; height: 10px; border-radius: 50%; border: 2px solid #f8fafc;"></div>`,
+                    iconSize: [15, 15],
+                    iconAnchor: [7, 7]
+                });
+                
+                const powerIcon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div style="background-color: #f59e0b; width: 10px; height: 10px; border-radius: 50%; border: 2px solid #f8fafc;"></div>`,
+                    iconSize: [15, 15],
+                    iconAnchor: [7, 7]
+                });
+                
+                // Add markers for schools
+                schools.forEach(school => {
+                    const marker = L.marker([school.lat, school.lng], {icon: schoolIcon}).addTo(map);
+                    marker.bindPopup(`
+                        <div class="p-1">
+                            <h3 class="font-semibold text-primary-light">${school.name}</h3>
+                            <p class="text-sm text-gray-300 mt-1">Type: ${school.type}</p>
+                            <p class="text-sm text-gray-300">Capacity: ${school.capacity} students</p>
+                            <p class="text-sm text-gray-300">Established: ${school.year}</p>
+                            <div class="mt-2 pt-2 border-t border-gray-700">
+                                <a href="#" class="text-primary-light text-sm hover:text-primary">View Details</a>
+                            </div>
+                        </div>
+                    `);
+                });
+                
+                // Add markers for hospitals
+                hospitals.forEach(hospital => {
+                    const marker = L.marker([hospital.lat, hospital.lng], {icon: hospitalIcon}).addTo(map);
+                    marker.bindPopup(`
+                        <div class="p-1">
+                            <h3 class="font-semibold text-green-400">${hospital.name}</h3>
+                            <p class="text-sm text-gray-300 mt-1">Beds: ${hospital.beds}</p>
+                            <p class="text-sm text-gray-300">Specialties: ${hospital.specialties}</p>
+                            <p class="text-sm text-gray-300">Established: ${hospital.year}</p>
+                            <div class="mt-2 pt-2 border-t border-gray-700">
+                                <a href="#" class="text-green-400 text-sm hover:text-green-500">View Details</a>
+                            </div>
+                        </div>
+                    `);
+                });
+                
+                // Add markers for water resources
+                waterResources.forEach(water => {
+                    const marker = L.marker([water.lat, water.lng], {icon: waterIcon}).addTo(map);
+                    marker.bindPopup(`
+                        <div class="p-1">
+                            <h3 class="font-semibold text-purple-400">${water.name}</h3>
+                            <p class="text-sm text-gray-300 mt-1">Type: ${water.type}</p>
+                            <p class="text-sm text-gray-300">Capacity: ${water.capacity}</p>
+                            <p class="text-sm text-gray-300">Year: ${water.year}</p>
+                            <div class="mt-2 pt-2 border-t border-gray-700">
+                                <a href="#" class="text-purple-400 text-sm hover:text-purple-500">View Details</a>
+                            </div>
+                        </div>
+                    `);
+                });
+                
+                // Add markers for power stations
+                powerStations.forEach(power => {
+                    const marker = L.marker([power.lat, power.lng], {icon: powerIcon}).addTo(map);
+                    marker.bindPopup(`
+                        <div class="p-1">
+                            <h3 class="font-semibold text-yellow-400">${power.name}</h3>
+                            <p class="text-sm text-gray-300 mt-1">Type: ${power.type}</p>
+                            <p class="text-sm text-gray-300">Capacity: ${power.capacity}</p>
+                            <p class="text-sm text-gray-300">Year: ${power.year}</p>
+                            <div class="mt-2 pt-2 border-t border-gray-700">
+                                <a href="#" class="text-yellow-400 text-sm hover:text-yellow-500">View Details</a>
+                            </div>
+                        </div>
+                    `);
+                });
+                
+                // Hide loading indicator
+                document.getElementById('loadingIndicator').classList.add('hidden');
+                
+                // Initialize side panel for mobile view
+                const sidePanel = document.getElementById('sidePanel');
+                if (window.innerWidth < 768) {
+                    sidePanel.classList.add('-translate-x-full');
+                } else {
+                    sidePanel.classList.add('translate-x-0');
+                }
+            }, 1500); // Simulated loading time
+        });
+    </script>
+</body>
+</html> 

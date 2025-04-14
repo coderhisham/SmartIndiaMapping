@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart India Mapping - Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#60a5fa',
+                        'primary-dark': '#3b82f6',
+                        'primary-light': '#93c5fd',
+                        secondary: '#10b981',
+                        'secondary-dark': '#059669',
+                        accent: '#a78bfa',
+                        dark: '#0f172a',
+                        darker: '#020617',
+                        'gray-800': '#1f2937',
+                        'gray-900': '#111827',
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Custom Animations */
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+        
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        
+        @keyframes slideUp {
+            0% { transform: translateY(20px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        
+        .animate-slideUp {
+            animation: slideUp 0.4s ease-out forwards;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        /* Custom Styles */
+        .card {
+            background-color: rgba(31, 41, 55, 0.8);
+            backdrop-filter: blur(4px);
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .nav-item {
+            transition: all 0.2s ease;
+        }
+        
+        .nav-item.active {
+            background-color: rgba(59, 130, 246, 0.2);
+            border-left: 3px solid #3b82f6;
+        }
+        
+        .nav-item:hover:not(.active) {
+            background-color: rgba(31, 41, 55, 0.8);
+        }
+        
+        .tab-link {
+            transition: all 0.2s ease;
+        }
+        
+        .tab-link.active {
+            border-bottom: 2px solid #3b82f6;
+        }
+        
+        /* Form Styles */
+        .form-input {
+            background-color: rgba(31, 41, 55, 0.6);
+            border: 1px solid rgba(75, 85, 99, 0.4);
+            border-radius: 0.375rem;
+            color: #e5e7eb;
+            transition: all 0.3s ease;
+        }
+        
+        .form-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+            outline: none;
+        }
+        
+        /* Table Styles */
+        .data-table th {
+            background-color: rgba(31, 41, 55, 0.9);
+            color: #93c5fd;
+            font-weight: 500;
+        }
+        
+        .data-table tr {
+            border-bottom: 1px solid rgba(75, 85, 99, 0.4);
+            transition: all 0.2s ease;
+        }
+        
+        .data-table tr:hover {
+            background-color: rgba(31, 41, 55, 0.8);
+        }
+        
+        /* Chart placeholder */
+        .chart-placeholder {
+            background-color: rgba(31, 41, 55, 0.6);
+            border-radius: 0.5rem;
+            min-height: 220px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Map Picker Styles */
+        #map-picker {
+            height: 250px;
+            border-radius: 0.375rem;
+            margin-top: 0.5rem;
+            z-index: 10;
+        }
+        
+        .location-pin {
+            display: flex;
+            align-items: center;
+            margin-top: 0.5rem;
+        }
+        
+        .location-pin i {
+            color: #ef4444;
+            margin-right: 0.5rem;
+        }
+        
+        /* Customize Leaflet Map for Dark Theme */
+        .leaflet-container {
+            background-color: #1f2937;
+        }
+        
+        .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+            background-color: #1f2937;
+            color: #e5e7eb;
+        }
+        
+        .leaflet-control-zoom a {
+            background-color: #1f2937;
+            color: #e5e7eb;
+            border-color: #4b5563;
+        }
+        
+        .leaflet-control-zoom a:hover {
+            background-color: #374151;
+        }
+    </style>
+</head>
+<body class="bg-dark text-gray-200">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <div class="hidden md:flex md:flex-shrink-0">
+            <div class="flex flex-col w-64 bg-gray-900 border-r border-gray-800">
+                <!-- Sidebar header -->
+                <div class="h-16 flex items-center px-6 border-b border-gray-800">
+                    <a href="index.html" class="flex items-center">
+                        <i class="fas fa-map-marked-alt text-primary-light text-2xl mr-3"></i>
+                        <span class="text-xl font-bold">Smart India <span class="text-primary-light">Mapping</span></span>
+                    </a>
+                </div>
+                
+                <!-- Sidebar content -->
+                <div class="flex-1 flex flex-col overflow-y-auto">
+                    <nav class="flex-1 px-2 py-4 space-y-1">
+                        <a href="#" class="nav-item active group flex items-center px-4 py-3 text-white rounded-md">
+                            <i class="fas fa-tachometer-alt text-primary-light mr-3"></i>
+                            <span>Dashboard</span>
+                        </a>
+                        <a href="#" class="nav-item group flex items-center px-4 py-3 text-gray-300 hover:text-white rounded-md">
+                            <i class="fas fa-map text-gray-400 group-hover:text-primary-light mr-3"></i>
+                            <span>Map Management</span>
+                        </a>
+                        <a href="#" class="nav-item group flex items-center px-4 py-3 text-gray-300 hover:text-white rounded-md">
+                            <i class="fas fa-database text-gray-400 group-hover:text-primary-light mr-3"></i>
+                            <span>Data Sources</span>
+                        </a>
+                        <a href="#" class="nav-item group flex items-center px-4 py-3 text-gray-300 hover:text-white rounded-md">
+                            <i class="fas fa-users text-gray-400 group-hover:text-primary-light mr-3"></i>
+                            <span>User Management</span>
+                        </a>
+                        <a href="#" class="nav-item group flex items-center px-4 py-3 text-gray-300 hover:text-white rounded-md">
+                            <i class="fas fa-cog text-gray-400 group-hover:text-primary-light mr-3"></i>
+                            <span>Settings</span>
+                        </a>
+                    </nav>
+                    
+                    <div class="px-2 py-4 border-t border-gray-800">
+                        <div class="flex items-center px-4 py-3">
+                            <div class="flex-shrink-0">
+                                <img class="h-8 w-8 rounded-full" src="https://ui-avatars.com/api/?name=Admin+User&background=3b82f6&color=fff" alt="Admin User">
+                            </div>
+                            <div class="ml-3">
+                                <div class="text-sm font-medium text-white">Admin User</div>
+                                <div class="text-xs text-gray-400">admin@example.com</div>
+                            </div>
+                            <div class="ml-auto">
+                                <button type="button" class="text-gray-400 hover:text-white">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main content -->
+        <div class="flex flex-col flex-1 overflow-hidden">
+            <!-- Top navbar -->
+            <div class="bg-gray-900 border-b border-gray-800 shadow-sm">
+                <div class="h-16 flex items-center justify-between px-4 sm:px-6">
+                    <!-- Mobile menu button -->
+                    <div class="md:hidden">
+                        <button id="mobile-menu-button" type="button" class="text-gray-400 hover:text-white">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Page title -->
+                    <h1 class="text-xl font-semibold text-white md:hidden">Admin Dashboard</h1>
+                    
+                    <!-- Desktop title -->
+                    <div class="hidden md:block">
+                        <h1 class="text-xl font-semibold text-white">Admin Dashboard</h1>
+                    </div>
+                    
+                    <!-- Right side controls -->
+                    <div class="flex items-center space-x-4">
+                        <button type="button" class="text-gray-400 hover:text-white relative">
+                            <i class="fas fa-bell"></i>
+                            <span class="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500"></span>
+                        </button>
+                        <button type="button" class="text-gray-400 hover:text-white">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                        <div class="md:hidden">
+                            <img class="h-8 w-8 rounded-full" src="https://ui-avatars.com/api/?name=Admin+User&background=3b82f6&color=fff" alt="Admin User">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mobile navigation menu -->
+                <div id="mobile-menu" class="hidden md:hidden">
+                    <div class="px-2 pt-2 pb-3 space-y-1 bg-gray-900">
+                        <a href="#" class="block px-3 py-2 rounded-md text-white bg-primary-dark">
+                            <div class="flex items-center">
+                                <i class="fas fa-tachometer-alt mr-3"></i>
+                                <span>Dashboard</span>
+                            </div>
+                        </a>
+                        <a href="#" class="block px-3 py-2 rounded-md text-gray-300 hover:bg-gray-800 hover:text-white">
+                            <div class="flex items-center">
+                                <i class="fas fa-map mr-3"></i>
+                                <span>Map Management</span>
+                            </div>
+                        </a>
+                        <a href="#" class="block px-3 py-2 rounded-md text-gray-300 hover:bg-gray-800 hover:text-white">
+                            <div class="flex items-center">
+                                <i class="fas fa-database mr-3"></i>
+                                <span>Data Sources</span>
+                            </div>
+                        </a>
+                        <a href="#" class="block px-3 py-2 rounded-md text-gray-300 hover:bg-gray-800 hover:text-white">
+                            <div class="flex items-center">
+                                <i class="fas fa-users mr-3"></i>
+                                <span>User Management</span>
+                            </div>
+                        </a>
+                        <a href="#" class="block px-3 py-2 rounded-md text-gray-300 hover:bg-gray-800 hover:text-white">
+                            <div class="flex items-center">
+                                <i class="fas fa-cog mr-3"></i>
+                                <span>Settings</span>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main content wrapper -->
+            <main class="flex-1 overflow-y-auto bg-dark p-4 sm:p-6 animate-fadeIn">
+                <!-- Dashboard header -->
+                <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">Welcome back, Admin</h2>
+                        <p class="mt-1 text-sm text-gray-400">Here's what's happening with your mapping data today.</p>
+                    </div>
+                    <div class="mt-4 md:mt-0 flex space-x-3">
+                        <button class="px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-gray-300 hover:text-white hover:border-gray-600 focus:outline-none">
+                            <i class="fas fa-download mr-2"></i>
+                            Export
+                        </button>
+                        <button id="add-resource-btn" class="px-4 py-2 bg-primary-dark text-white rounded-md hover:bg-primary-light focus:outline-none transition-colors">
+                            <i class="fas fa-plus mr-2"></i>
+                            Add New Location
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="card p-4 animate-slideUp" style="animation-delay: 0.1s">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-primary-dark bg-opacity-20 text-primary-light">
+                                <i class="fas fa-school text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-gray-400 text-sm font-medium">Total Schools</h3>
+                                <div class="flex items-center">
+                                    <span class="text-2xl font-semibold text-white">24,585</span>
+                                    <span class="ml-2 text-green-500 text-sm">
+                                        <i class="fas fa-arrow-up mr-1"></i>8.2%
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card p-4 animate-slideUp" style="animation-delay: 0.2s">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-green-700 bg-opacity-20 text-green-400">
+                                <i class="fas fa-hospital text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-gray-400 text-sm font-medium">Total Hospitals</h3>
+                                <div class="flex items-center">
+                                    <span class="text-2xl font-semibold text-white">4,128</span>
+                                    <span class="ml-2 text-green-500 text-sm">
+                                        <i class="fas fa-arrow-up mr-1"></i>3.1%
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card p-4 animate-slideUp" style="animation-delay: 0.3s">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-purple-700 bg-opacity-20 text-purple-400">
+                                <i class="fas fa-water text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-gray-400 text-sm font-medium">Water Resources</h3>
+                                <div class="flex items-center">
+                                    <span class="text-2xl font-semibold text-white">8,745</span>
+                                    <span class="ml-2 text-green-500 text-sm">
+                                        <i class="fas fa-arrow-up mr-1"></i>5.4%
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card p-4 animate-slideUp" style="animation-delay: 0.4s">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-yellow-700 bg-opacity-20 text-yellow-400">
+                                <i class="fas fa-bolt text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-gray-400 text-sm font-medium">Power Stations</h3>
+                                <div class="flex items-center">
+                                    <span class="text-2xl font-semibold text-white">1,432</span>
+                                    <span class="ml-2 text-yellow-400 text-sm">
+                                        <i class="fas fa-arrow-right mr-1"></i>0.2%
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Charts Row -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <div class="card p-5 animate-slideUp" style="animation-delay: 0.5s">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold text-white">Resource Distribution</h3>
+                            <div class="flex space-x-2">
+                                <button class="period-btn px-2 py-1 text-sm text-gray-400 hover:text-white" data-period="day">Day</button>
+                                <button class="period-btn px-2 py-1 text-sm text-gray-400 hover:text-white" data-period="week">Week</button>
+                                <button class="period-btn active px-2 py-1 text-sm bg-primary-dark bg-opacity-20 text-primary-light rounded-md" data-period="month">Month</button>
+                            </div>
+                        </div>
+                        <div class="chart-container" style="position: relative; height:250px;">
+                            <canvas id="resourceDistChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card p-5 animate-slideUp" style="animation-delay: 0.6s">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold text-white">Regional Insights</h3>
+                            <button class="text-gray-400 hover:text-white">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                        </div>
+                        <div class="chart-container" style="position: relative; height:250px;">
+                            <canvas id="regionalInsightsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Search and filters -->
+                <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between">
+                    <div class="flex flex-col md:flex-row md:items-center space-y-3 md:space-y-0 md:space-x-4 w-full md:w-auto">
+                        <div class="relative flex-grow">
+                            <input id="search-input" type="text" placeholder="Search resources..." class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent text-white">
+                            <button id="search-button" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        <div class="flex space-x-2">
+                            <select id="resource-type-filter" class="px-3 py-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent text-white">
+                                <option value="all">All Types</option>
+                                <option value="School">Schools</option>
+                                <option value="Hospital">Hospitals</option>
+                                <option value="Water Resource">Water Resources</option>
+                                <option value="Power Station">Power Stations</option>
+                            </select>
+                            <select id="status-filter" class="px-3 py-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent text-white">
+                                <option value="all">All Status</option>
+                                <option value="Active">Active</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Review">Review</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tabs and Table -->
+                <div class="card p-0 overflow-hidden animate-slideUp" style="animation-delay: 0.7s">
+                    <!-- Tabs -->
+                    <div class="flex border-b border-gray-800 px-4">
+                        <button class="tab-link active text-primary-light px-4 py-3 font-medium" data-tab="recent">
+                            Recent Additions
+                        </button>
+                        <button class="tab-link text-gray-400 hover:text-white px-4 py-3 font-medium" data-tab="pending">
+                            Pending Approvals
+                        </button>
+                        <button class="tab-link text-gray-400 hover:text-white px-4 py-3 font-medium" data-tab="updates">
+                            Updates
+                        </button>
+                    </div>
+                    
+                    <!-- Table -->
+                    <div class="overflow-x-auto">
+                        <table class="data-table min-w-full divide-y divide-gray-800">
+                            <thead>
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                                        Name
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                                        Type
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                                        Location
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                                        Status
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                                        Added
+                                    </th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider">
+                                        Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="resources-table-body" class="divide-y divide-gray-800">
+                                <!-- Table rows will be dynamically populated -->
+                                <tr>
+                                    <td colspan="6" class="px-6 py-8 text-center text-gray-400">
+                                        <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-light mb-4"></div>
+                                        <p>Loading resources...</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    <div class="px-6 py-3 flex items-center justify-between border-t border-gray-800">
+                        <div class="flex-1 flex justify-between sm:hidden">
+                            <button id="prev-page-btn-mobile" class="relative inline-flex items-center px-4 py-2 border border-gray-700 text-sm font-medium rounded-md text-gray-300 bg-gray-800 hover:bg-gray-700">
+                                Previous
+                            </button>
+                            <button id="next-page-btn-mobile" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-700 text-sm font-medium rounded-md text-gray-300 bg-gray-800 hover:bg-gray-700">
+                                Next
+                            </button>
+                        </div>
+                        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-sm text-gray-400">
+                                    Showing <span id="pagination-start" class="font-medium">1</span> to <span id="pagination-end" class="font-medium">5</span> of <span id="pagination-total" class="font-medium">25</span> results
+                                </p>
+                            </div>
+                            <div>
+                                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination" id="pagination-container">
+                                    <!-- Pagination will be dynamically populated -->
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal for Adding/Editing Resource -->
+    <div id="resource-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Background overlay -->
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+                <div class="absolute inset-0 bg-gray-900 opacity-75"></div>
+            </div>
+
+            <!-- Modal panel -->
+            <div class="inline-block align-bottom bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-white" id="modal-title">
+                                Add New Resource
+                            </h3>
+                            <div class="mt-4">
+                                <form id="resource-form" class="space-y-4">
+                                    <input type="hidden" id="resource-id" value="">
+                                    <div>
+                                        <label for="resource-name" class="block text-sm font-medium text-gray-400">Name</label>
+                                        <input type="text" name="name" id="resource-name" required class="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent">
+                                    </div>
+                                    <div>
+                                        <label for="resource-type" class="block text-sm font-medium text-gray-400">Type</label>
+                                        <select name="type" id="resource-type" required class="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent">
+                                            <option value="School">School</option>
+                                            <option value="Hospital">Hospital</option>
+                                            <option value="Water Resource">Water Resource</option>
+                                            <option value="Power Station">Power Station</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="resource-location" class="block text-sm font-medium text-gray-400">Location</label>
+                                        <input type="text" name="location" id="resource-location" required class="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent">
+                                    </div>
+                                    <div>
+                                        <label for="resource-status" class="block text-sm font-medium text-gray-400">Status</label>
+                                        <select name="status" id="resource-status" required class="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent">
+                                            <option value="Active">Active</option>
+                                            <option value="Pending">Pending</option>
+                                            <option value="Review">Review</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="resource-coordinates" class="block text-sm font-medium text-gray-400">Coordinates</label>
+                                        <div class="flex space-x-2">
+                                            <input type="text" name="latitude" id="resource-latitude" placeholder="Latitude" class="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent">
+                                            <input type="text" name="longitude" id="resource-longitude" placeholder="Longitude" class="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent">
+                                        </div>
+                                        <div class="location-pin text-sm text-gray-400">
+                                            <i class="fas fa-map-pin"></i>
+                                            <span>Click on the map to set coordinates</span>
+                                        </div>
+                                        <div id="map-picker" class="mt-2"></div>
+                                    </div>
+                                    <div>
+                                        <label for="resource-description" class="block text-sm font-medium text-gray-400">Description</label>
+                                        <textarea name="description" id="resource-description" rows="3" class="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent"></textarea>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-900 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" id="save-resource-btn" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-dark text-base font-medium text-white hover:bg-primary-light focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                        Save
+                    </button>
+                    <button type="button" id="close-modal-btn" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-700 shadow-sm px-4 py-2 bg-gray-800 text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Notification -->
+    <div id="notification" class="fixed top-4 right-4 z-50 p-4 rounded-md shadow-lg bg-green-600 text-white transform transition-transform duration-300 translate-x-full">
+        <div class="flex items-center">
+            <i class="fas fa-check-circle mr-3 text-xl"></i>
+            <span id="notification-message">Operation successful!</span>
+        </div>
+    </div>
+
+    <script>
+        // Mobile menu toggle
+        document.getElementById('mobile-menu-button').addEventListener('click', function() {
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenu.classList.toggle('hidden');
+        });
+        
+        // Tab functionality
+        const tabLinks = document.querySelectorAll('.tab-link');
+        
+        tabLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                // Remove active class from all tabs
+                tabLinks.forEach(tab => {
+                    tab.classList.remove('active', 'text-primary-light');
+                    tab.classList.add('text-gray-400');
+                });
+                
+                // Add active class to current tab
+                this.classList.add('active', 'text-primary-light');
+                this.classList.remove('text-gray-400');
+                
+                // Change tab content
+                currentTab = this.getAttribute('data-tab');
+                filteredResources = [...tabData[currentTab]];
+                currentPage = 1;
+                applyFilters();
+            });
+        });
+        
+        // Staggered animations for elements
+        document.addEventListener('DOMContentLoaded', function() {
+            const animatedElements = document.querySelectorAll('.animate-slideUp');
+            
+            animatedElements.forEach((element, index) => {
+                element.style.opacity = '0';
+                element.style.animationDelay = (0.1 * index) + 's';
+                setTimeout(() => {
+                    element.style.opacity = '1';
+                }, 100 * index);
+            });
+            
+            // Initialize Charts
+            initializeCharts();
+            
+            // Period Button Functionality
+            const periodBtns = document.querySelectorAll('.period-btn');
+            periodBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Remove active class from all period buttons
+                    periodBtns.forEach(b => b.classList.remove('active', 'bg-primary-dark', 'bg-opacity-20', 'text-primary-light', 'rounded-md'));
+                    b.classList.add('text-gray-400');
+                    
+                    // Add active class to clicked button
+                    this.classList.add('active', 'bg-primary-dark', 'bg-opacity-20', 'text-primary-light', 'rounded-md');
+                    
+                    // Update chart data based on period
+                    updateChartData(this.getAttribute('data-period'));
+                });
+            });
+            
+            // Initialize resources table
+            loadResourcesTable();
+            
+            // Modal functionality
+            const resourceModal = document.getElementById('resource-modal');
+            const addResourceBtn = document.getElementById('add-resource-btn');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            const saveResourceBtn = document.getElementById('save-resource-btn');
+            const resourceForm = document.getElementById('resource-form');
+            let locationMap;
+            let locationMarker;
+            
+            // Open modal for new resource
+            addResourceBtn.addEventListener('click', function() {
+                // Reset form
+                resourceForm.reset();
+                document.getElementById('resource-id').value = '';
+                document.getElementById('modal-title').textContent = 'Add New Resource';
+                
+                // Show modal
+                resourceModal.classList.remove('hidden');
+                document.getElementById('resource-name').focus();
+                
+                // Initialize map with a slight delay to ensure container is visible
+                setTimeout(() => {
+                    initializeLocationMap();
+                }, 100);
+            });
+            
+            // Initialize location picker map
+            function initializeLocationMap(lat = 20.5937, lng = 78.9629) { // Default to center of India
+                // If map already initialized, remove it
+                if (locationMap) {
+                    locationMap.remove();
+                    locationMap = null;
+                }
+                
+                // Create map
+                locationMap = L.map('map-picker').setView([lat, lng], 5);
+                
+                // Add dark theme tile layer
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                    subdomains: 'abcd',
+                    maxZoom: 19
+                }).addTo(locationMap);
+                
+                // Add marker if coordinates are provided
+                if (lat !== 20.5937 || lng !== 78.9629) {
+                    addMarker(lat, lng);
+                }
+                
+                // Add click event
+                locationMap.on('click', function(e) {
+                    const { lat, lng } = e.latlng;
+                    
+                    // Update form fields
+                    document.getElementById('resource-latitude').value = lat.toFixed(6);
+                    document.getElementById('resource-longitude').value = lng.toFixed(6);
+                    
+                    // Update marker
+                    addMarker(lat, lng);
+                });
+                
+                // Force a map resize to ensure it renders correctly
+                setTimeout(() => {
+                    locationMap.invalidateSize();
+                }, 100);
+            }
+            
+            // Add marker to map
+            function addMarker(lat, lng) {
+                // Remove existing marker
+                if (locationMarker) {
+                    locationMap.removeLayer(locationMarker);
+                }
+                
+                // Add new marker
+                locationMarker = L.marker([lat, lng]).addTo(locationMap);
+                
+                // Add popup with coordinates
+                locationMarker.bindPopup(`<b>Selected Location</b><br>Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`).openPopup();
+            }
+            
+            // Close modal
+            closeModalBtn.addEventListener('click', function() {
+                resourceModal.classList.add('hidden');
+                // Clean up map
+                if (locationMap) {
+                    locationMap.remove();
+                    locationMap = null;
+                }
+            });
+            
+            // Close modal when clicking outside
+            resourceModal.addEventListener('click', function(e) {
+                if (e.target === resourceModal) {
+                    resourceModal.classList.add('hidden');
+                    // Clean up map
+                    if (locationMap) {
+                        locationMap.remove();
+                        locationMap = null;
+                    }
+                }
+            });
+            
+            // Manual latitude/longitude input
+            document.getElementById('resource-latitude').addEventListener('change', updateMapFromCoordinates);
+            document.getElementById('resource-longitude').addEventListener('change', updateMapFromCoordinates);
+            
+            function updateMapFromCoordinates() {
+                const lat = parseFloat(document.getElementById('resource-latitude').value);
+                const lng = parseFloat(document.getElementById('resource-longitude').value);
+                
+                if (!isNaN(lat) && !isNaN(lng) && locationMap) {
+                    locationMap.setView([lat, lng], 10);
+                    addMarker(lat, lng);
+                }
+            }
+            
+            // Save resource
+            saveResourceBtn.addEventListener('click', function() {
+                if (resourceForm.checkValidity()) {
+                    const resourceId = document.getElementById('resource-id').value;
+                    const formData = {
+                        name: document.getElementById('resource-name').value,
+                        type: document.getElementById('resource-type').value,
+                        location: document.getElementById('resource-location').value,
+                        status: document.getElementById('resource-status').value,
+                        latitude: document.getElementById('resource-latitude').value,
+                        longitude: document.getElementById('resource-longitude').value,
+                        description: document.getElementById('resource-description').value,
+                        added: new Date().toISOString().split('T')[0]
+                    };
+                    
+                    if (resourceId) {
+                        // Edit existing resource
+                        updateResource(parseInt(resourceId), formData);
+                    } else {
+                        // Add new resource
+                        addNewResource(formData);
+                    }
+                    
+                    // Close modal
+                    resourceModal.classList.add('hidden');
+                } else {
+                    // Trigger browser's built-in validation
+                    const submitBtn = document.createElement('button');
+                    submitBtn.type = 'submit';
+                    resourceForm.appendChild(submitBtn);
+                    submitBtn.click();
+                    resourceForm.removeChild(submitBtn);
+                }
+            });
+            
+            // Keyboard support for modal
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && !resourceModal.classList.contains('hidden')) {
+                    resourceModal.classList.add('hidden');
+                }
+            });
+        });
+        
+        // Chart Initialization
+        function initializeCharts() {
+            // Resource Distribution Chart
+            const resourceCtx = document.getElementById('resourceDistChart').getContext('2d');
+            window.resourceDistChart = new Chart(resourceCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Schools', 'Hospitals', 'Water Resources', 'Power Stations'],
+                    datasets: [{
+                        data: [24585, 4128, 8745, 1432],
+                        backgroundColor: [
+                            'rgba(59, 130, 246, 0.8)',
+                            'rgba(16, 185, 129, 0.8)',
+                            'rgba(167, 139, 250, 0.8)',
+                            'rgba(245, 158, 11, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(59, 130, 246, 1)',
+                            'rgba(16, 185, 129, 1)',
+                            'rgba(167, 139, 250, 1)',
+                            'rgba(245, 158, 11, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: 'rgba(229, 231, 235, 1)',
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(31, 41, 55, 0.9)',
+                            titleColor: 'rgba(255, 255, 255, 1)',
+                            bodyColor: 'rgba(229, 231, 235, 1)',
+                            bodyFont: {
+                                size: 13
+                            },
+                            titleFont: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Regional Insights Chart
+            const regionalCtx = document.getElementById('regionalInsightsChart').getContext('2d');
+            window.regionalInsightsChart = new Chart(regionalCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Delhi', 'Mumbai', 'Kolkata', 'Chennai', 'Bangalore', 'Hyderabad'],
+                    datasets: [
+                        {
+                            label: 'Schools',
+                            data: [3241, 4535, 2987, 3452, 4231, 3254],
+                            backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Hospitals',
+                            data: [687, 842, 563, 689, 724, 623],
+                            backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                            borderColor: 'rgba(16, 185, 129, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(75, 85, 99, 0.2)'
+                            },
+                            ticks: {
+                                color: 'rgba(229, 231, 235, 0.8)'
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(75, 85, 99, 0.2)'
+                            },
+                            ticks: {
+                                color: 'rgba(229, 231, 235, 0.8)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: 'rgba(229, 231, 235, 1)',
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(31, 41, 55, 0.9)',
+                            titleColor: 'rgba(255, 255, 255, 1)',
+                            bodyColor: 'rgba(229, 231, 235, 1)'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Update chart data based on period
+        function updateChartData(period) {
+            // This would normally fetch data from an API based on the selected period
+            // For demo purposes, we'll just update with random data
+            
+            let newData;
+            
+            if (period === 'day') {
+                newData = [Math.floor(Math.random() * 1000) + 23000, 
+                          Math.floor(Math.random() * 500) + 3500, 
+                          Math.floor(Math.random() * 800) + 7500, 
+                          Math.floor(Math.random() * 300) + 1000];
+            } else if (period === 'week') {
+                newData = [Math.floor(Math.random() * 2000) + 22000, 
+                          Math.floor(Math.random() * 800) + 3000, 
+                          Math.floor(Math.random() * 1000) + 7000, 
+                          Math.floor(Math.random() * 400) + 900];
+            } else {
+                newData = [24585, 4128, 8745, 1432]; // original data
+            }
+            
+            window.resourceDistChart.data.datasets[0].data = newData;
+            window.resourceDistChart.update();
+            
+            // Update regional data as well
+            const newRegionalData1 = Array(6).fill().map(() => Math.floor(Math.random() * 2000) + 2000);
+            const newRegionalData2 = Array(6).fill().map(() => Math.floor(Math.random() * 400) + 500);
+            
+            window.regionalInsightsChart.data.datasets[0].data = newRegionalData1;
+            window.regionalInsightsChart.data.datasets[1].data = newRegionalData2;
+            window.regionalInsightsChart.update();
+            
+            console.log(`Updated charts with ${period} data`);
+        }
+        
+        // Mock data for resources
+        const mockResources = [
+            { id: 1, name: "Greenfield Public School", type: "School", location: "Delhi, India", status: "Active", added: "2023-06-15" },
+            { id: 2, name: "St. Mary's Hospital", type: "Hospital", location: "Mumbai, India", status: "Active", added: "2023-06-14" },
+            { id: 3, name: "Kaveri Reservoir", type: "Water Resource", location: "Karnataka, India", status: "Pending", added: "2023-06-14" },
+            { id: 4, name: "Adani Solar Plant", type: "Power Station", location: "Gujarat, India", status: "Review", added: "2023-06-13" },
+            { id: 5, name: "Rani Laxmi Bai School", type: "School", location: "Uttar Pradesh, India", status: "Active", added: "2023-06-12" },
+            { id: 6, name: "AIIMS Patna", type: "Hospital", location: "Bihar, India", status: "Active", added: "2023-06-12" },
+            { id: 7, name: "Bhakra Nangal Dam", type: "Water Resource", location: "Punjab, India", status: "Active", added: "2023-06-11" },
+            { id: 8, name: "Rayalaseema Thermal Plant", type: "Power Station", location: "Andhra Pradesh, India", status: "Pending", added: "2023-06-11" },
+            { id: 9, name: "Delhi Public School", type: "School", location: "New Delhi, India", status: "Active", added: "2023-06-10" },
+            { id: 10, name: "Apollo Hospital", type: "Hospital", location: "Chennai, India", status: "Active", added: "2023-06-10" },
+            { id: 11, name: "Tungabhadra Dam", type: "Water Resource", location: "Karnataka, India", status: "Active", added: "2023-06-09" },
+            { id: 12, name: "Tata Power Plant", type: "Power Station", location: "Maharashtra, India", status: "Review", added: "2023-06-09" },
+            { id: 13, name: "Kendriya Vidyalaya", type: "School", location: "Rajasthan, India", status: "Active", added: "2023-06-08" },
+            { id: 14, name: "Fortis Hospital", type: "Hospital", location: "Bangalore, India", status: "Active", added: "2023-06-08" },
+            { id: 15, name: "Hirakud Dam", type: "Water Resource", location: "Odisha, India", status: "Pending", added: "2023-06-07" },
+            { id: 16, name: "NTPC Dadri", type: "Power Station", location: "Uttar Pradesh, India", status: "Active", added: "2023-06-07" },
+            { id: 17, name: "Navodaya Vidyalaya", type: "School", location: "Madhya Pradesh, India", status: "Review", added: "2023-06-06" },
+            { id: 18, name: "Medanta Hospital", type: "Hospital", location: "Haryana, India", status: "Active", added: "2023-06-06" },
+            { id: 19, name: "Tehri Dam", type: "Water Resource", location: "Uttarakhand, India", status: "Active", added: "2023-06-05" },
+            { id: 20, name: "Kudankulam Nuclear Plant", type: "Power Station", location: "Tamil Nadu, India", status: "Active", added: "2023-06-05" },
+            { id: 21, name: "Jawahar Navodaya Vidyalaya", type: "School", location: "Jharkhand, India", status: "Pending", added: "2023-06-04" },
+            { id: 22, name: "Manipal Hospital", type: "Hospital", location: "Goa, India", status: "Active", added: "2023-06-04" },
+            { id: 23, name: "Sardar Sarovar Dam", type: "Water Resource", location: "Gujarat, India", status: "Active", added: "2023-06-03" },
+            { id: 24, name: "Sasan Ultra Mega Power", type: "Power Station", location: "Madhya Pradesh, India", status: "Active", added: "2023-06-03" },
+            { id: 25, name: "Army Public School", type: "School", location: "Delhi, India", status: "Active", added: "2023-06-02" }
+        ];
+        
+        // Mock data for tabs
+        const tabData = {
+            recent: mockResources,
+            pending: mockResources.filter(r => r.status === "Pending"),
+            updates: mockResources.filter(r => r.id % 3 === 0) // Just a subset for demo
+        };
+        
+        let currentPage = 1;
+        const itemsPerPage = 5;
+        let currentTab = 'recent';
+        let filteredResources = [...mockResources];
+        
+        // Load resources table with pagination
+        function loadResourcesTable() {
+            const tableBody = document.getElementById('resources-table-body');
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const paginatedData = filteredResources.slice(start, end);
+            
+            // Update pagination text
+            document.getElementById('pagination-start').textContent = filteredResources.length > 0 ? start + 1 : 0;
+            document.getElementById('pagination-end').textContent = Math.min(end, filteredResources.length);
+            document.getElementById('pagination-total').textContent = filteredResources.length;
+            
+            // Clear current table
+            tableBody.innerHTML = '';
+            
+            // Create rows
+            if (paginatedData.length === 0) {
+                const noDataRow = document.createElement('tr');
+                noDataRow.innerHTML = `
+                    <td colspan="6" class="px-6 py-8 text-center text-gray-400">
+                        <i class="fas fa-search text-4xl mb-3"></i>
+                        <p>No resources found. Try adjusting your filters.</p>
+                    </td>
+                `;
+                tableBody.appendChild(noDataRow);
+            } else {
+                paginatedData.forEach(resource => {
+                    const row = document.createElement('tr');
+                    
+                    // Create status badge based on status
+                    let statusBadge;
+                    if (resource.status === 'Active') {
+                        statusBadge = `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-900 text-green-300">Active</span>`;
+                    } else if (resource.status === 'Pending') {
+                        statusBadge = `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-900 text-yellow-300">Pending</span>`;
+                    } else if (resource.status === 'Review') {
+                        statusBadge = `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-900 text-red-300">Review</span>`;
+                    }
+                    
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-white">${resource.name}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-300">${resource.type}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-300">${resource.location}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            ${statusBadge}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                            ${resource.added}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button class="edit-resource text-primary-light hover:text-primary-dark mr-3" data-id="${resource.id}">Edit</button>
+                            <button class="delete-resource text-red-400 hover:text-red-500" data-id="${resource.id}">Delete</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+                
+                // Add event listeners to edit and delete buttons
+                document.querySelectorAll('.edit-resource').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const resourceId = this.getAttribute('data-id');
+                        editResource(resourceId);
+                    });
+                });
+                
+                document.querySelectorAll('.delete-resource').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const resourceId = this.getAttribute('data-id');
+                        deleteResource(resourceId);
+                    });
+                });
+            }
+            
+            // Create pagination
+            createPagination();
+        }
+        
+        // Create pagination controls
+        function createPagination() {
+            const paginationContainer = document.getElementById('pagination-container');
+            paginationContainer.innerHTML = '';
+            
+            const totalPages = Math.ceil(filteredResources.length / itemsPerPage);
+            
+            // Previous button
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-700 bg-gray-800 text-sm font-medium text-gray-400 hover:bg-gray-700';
+            prevBtn.innerHTML = '<span class="sr-only">Previous</span><i class="fas fa-chevron-left text-xs"></i>';
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.addEventListener('click', function() {
+                if (currentPage > 1) {
+                    currentPage--;
+                    loadResourcesTable();
+                }
+            });
+            paginationContainer.appendChild(prevBtn);
+            
+            // Page numbers
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, startPage + 4);
+            
+            if (endPage - startPage < 4 && startPage > 1) {
+                startPage = Math.max(1, endPage - 4);
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const pageBtn = document.createElement('button');
+                if (i === currentPage) {
+                    pageBtn.className = 'relative inline-flex items-center px-4 py-2 border border-gray-700 bg-primary-dark text-sm font-medium text-white';
+                    pageBtn.setAttribute('aria-current', 'page');
+                } else {
+                    pageBtn.className = 'relative inline-flex items-center px-4 py-2 border border-gray-700 bg-gray-800 text-sm font-medium text-gray-400 hover:bg-gray-700';
+                }
+                pageBtn.textContent = i;
+                pageBtn.addEventListener('click', function() {
+                    currentPage = i;
+                    loadResourcesTable();
+                });
+                paginationContainer.appendChild(pageBtn);
+            }
+            
+            // Next button
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-700 bg-gray-800 text-sm font-medium text-gray-400 hover:bg-gray-700';
+            nextBtn.innerHTML = '<span class="sr-only">Next</span><i class="fas fa-chevron-right text-xs"></i>';
+            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.addEventListener('click', function() {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    loadResourcesTable();
+                }
+            });
+            paginationContainer.appendChild(nextBtn);
+        }
+        
+        // Apply search and filters
+        function applyFilters() {
+            const searchValue = document.getElementById('search-input').value.toLowerCase();
+            const typeFilter = document.getElementById('resource-type-filter').value;
+            const statusFilter = document.getElementById('status-filter').value;
+            
+            // Start with the current tab's data
+            filteredResources = [...tabData[currentTab]];
+            
+            // Apply search
+            if (searchValue) {
+                filteredResources = filteredResources.filter(resource => 
+                    resource.name.toLowerCase().includes(searchValue) || 
+                    resource.location.toLowerCase().includes(searchValue)
+                );
+            }
+            
+            // Apply type filter
+            if (typeFilter !== 'all') {
+                filteredResources = filteredResources.filter(resource => resource.type === typeFilter);
+            }
+            
+            // Apply status filter
+            if (statusFilter !== 'all') {
+                filteredResources = filteredResources.filter(resource => resource.status === statusFilter);
+            }
+            
+            // Reset to first page and load table
+            currentPage = 1;
+            loadResourcesTable();
+        }
+        
+        // Edit resource function
+        function editResource(id) {
+            const resource = mockResources.find(r => r.id === parseInt(id));
+            if (resource) {
+                // Fill the form
+                document.getElementById('resource-id').value = resource.id;
+                document.getElementById('resource-name').value = resource.name;
+                document.getElementById('resource-type').value = resource.type;
+                document.getElementById('resource-location').value = resource.location;
+                document.getElementById('resource-status').value = resource.status;
+                document.getElementById('resource-latitude').value = resource.latitude || '';
+                document.getElementById('resource-longitude').value = resource.longitude || '';
+                document.getElementById('resource-description').value = resource.description || '';
+                
+                // Update modal title
+                document.getElementById('modal-title').textContent = 'Edit Resource';
+                
+                // Show modal
+                document.getElementById('resource-modal').classList.remove('hidden');
+                document.getElementById('resource-name').focus();
+                
+                // Initialize map with resource coordinates if available
+                setTimeout(() => {
+                    if (resource.latitude && resource.longitude) {
+                        initializeLocationMap(parseFloat(resource.latitude), parseFloat(resource.longitude));
+                    } else {
+                        initializeLocationMap();
+                    }
+                }, 100);
+            }
+        }
+        
+        // Delete resource function
+        function deleteResource(id) {
+            if (confirm('Are you sure you want to delete this resource?')) {
+                const resourceIndex = mockResources.findIndex(r => r.id === parseInt(id));
+                if (resourceIndex !== -1) {
+                    // In a real application, this would call an API
+                    // For this demo, we'll remove from our mock data
+                    const resourceName = mockResources[resourceIndex].name;
+                    mockResources.splice(resourceIndex, 1);
+                    
+                    // Update the filtered resources and tab data
+                    filteredResources = filteredResources.filter(r => r.id !== parseInt(id));
+                    
+                    // Update tab data
+                    for (const tab in tabData) {
+                        tabData[tab] = tabData[tab].filter(r => r.id !== parseInt(id));
+                    }
+                    
+                    // Reload the table
+                    loadResourcesTable();
+                    
+                    // Show success message
+                    alert(`Deleted ${resourceName} successfully`);
+                }
+            }
+        }
+        
+        // Function to add a new resource
+        function addNewResource(formData) {
+            // In a real app, this would be an API call
+            // Generate new ID
+            const newId = mockResources.length > 0 ? Math.max(...mockResources.map(r => r.id)) + 1 : 1;
+            
+            // Create new resource
+            const newResource = {
+                id: newId,
+                name: formData.name,
+                type: formData.type,
+                location: formData.location,
+                status: formData.status,
+                added: formData.added,
+                latitude: formData.latitude,
+                longitude: formData.longitude,
+                description: formData.description
+            };
+            
+            // Add to mock data
+            mockResources.unshift(newResource);
+            
+            // Update tab data
+            tabData.recent = [...mockResources];
+            if (newResource.status === 'Pending') {
+                tabData.pending = [...tabData.pending, newResource];
+            }
+            // For this simple demo, we'll just add every third new item to updates tab
+            if (newId % 3 === 0) {
+                tabData.updates = [...tabData.updates, newResource];
+            }
+            
+            // If we're on the right tab, update filtered resources
+            if ((currentTab === 'recent') || 
+                (currentTab === 'pending' && newResource.status === 'Pending') ||
+                (currentTab === 'updates' && newId % 3 === 0)) {
+                filteredResources = [...tabData[currentTab]];
+                applyFilters(); // Reapply any active filters
+            }
+            
+            // Show success notification
+            showNotification(`Resource "${newResource.name}" added successfully`);
+        }
+        
+        // Function to update an existing resource
+        function updateResource(id, formData) {
+            // Find the resource
+            const resourceIndex = mockResources.findIndex(r => r.id === id);
+            if (resourceIndex !== -1) {
+                // In a real app, this would be an API call
+                const resource = mockResources[resourceIndex];
+                
+                // Update the resource
+                mockResources[resourceIndex] = {
+                    ...resource,
+                    name: formData.name,
+                    type: formData.type,
+                    location: formData.location,
+                    status: formData.status,
+                    latitude: formData.latitude,
+                    longitude: formData.longitude,
+                    description: formData.description
+                };
+                
+                // Update tab data
+                tabData.recent = [...mockResources];
+                tabData.pending = mockResources.filter(r => r.status === "Pending");
+                tabData.updates = mockResources.filter(r => r.id % 3 === 0);
+                
+                // Update filtered resources
+                filteredResources = [...tabData[currentTab]];
+                applyFilters(); // Reapply any active filters
+                
+                // Show success notification
+                showNotification(`Resource "${formData.name}" updated successfully`);
+            }
+        }
+        
+        // Show notification
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            const notificationMessage = document.getElementById('notification-message');
+            
+            // Set message
+            notificationMessage.textContent = message;
+            
+            // Show notification
+            notification.classList.remove('translate-x-full');
+            
+            // Hide after 3 seconds
+            setTimeout(() => {
+                notification.classList.add('translate-x-full');
+            }, 3000);
+        }
+    </script>
+</body>
+</html> 

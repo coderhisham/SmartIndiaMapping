@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart India Mapping</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#60a5fa',
+                        'primary-dark': '#3b82f6',
+                        'primary-light': '#93c5fd',
+                        secondary: '#10b981',
+                        'secondary-dark': '#059669',
+                        accent: '#a78bfa',
+                        dark: '#0f172a',
+                        darker: '#020617',
+                        'gray-800': '#1f2937',
+                        'gray-900': '#111827',
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Custom animations */
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+        
+        .animate-fadeIn {
+            animation: fadeIn 0.8s ease-out forwards;
+        }
+        
+        @keyframes slideUp {
+            0% { transform: translateY(30px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        
+        .animate-slideUp {
+            animation: slideUp 0.6s ease-out forwards;
+        }
+        
+        @keyframes slideInRight {
+            0% { transform: translateX(50px); opacity: 0; }
+            100% { transform: translateX(0); opacity: 1; }
+        }
+        
+        .animate-slideInRight {
+            animation: slideInRight 0.6s ease-out forwards;
+        }
+
+        /* Background gradient overlay */
+        .bg-gradient-overlay {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(2, 6, 23, 0.95) 100%);
+        }
+        
+        /* Card styles */
+        .feature-card {
+            background-color: rgba(31, 41, 55, 0.8);
+            backdrop-filter: blur(4px);
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+            background-color: rgba(31, 41, 55, 0.9);
+        }
+        
+        /* Button styles */
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2563eb;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.5);
+        }
+        
+        .btn-outline {
+            border: 2px solid #60a5fa;
+            color: #60a5fa;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-outline:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        /* Hero section background */
+        .hero-section {
+            background-image: url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80');
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+        
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(2, 6, 23, 0.95) 100%);
+        }
+        
+        /* Navbar links */
+        .nav-link {
+            position: relative;
+            transition: color 0.3s ease;
+        }
+        
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -4px;
+            left: 0;
+            background-color: #60a5fa;
+            transition: width 0.3s ease;
+        }
+        
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        
+        .nav-link.active::after {
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="bg-dark text-gray-200">
+    <!-- Navigation -->
+    <nav class="bg-gray-900 shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="index.html" class="flex items-center">
+                        <i class="fas fa-map-marked-alt text-primary-light text-2xl mr-3"></i>
+                        <span class="text-xl font-bold">Smart India <span class="text-primary-light">Mapping</span></span>
+                    </a>
+                    <div class="hidden md:ml-10 md:flex md:space-x-8">
+                        <a href="index.html" class="nav-link active px-3 py-2 text-white font-medium">Home</a>
+                        <a href="map.html" class="nav-link px-3 py-2 text-gray-300 hover:text-white font-medium">Interactive Map</a>
+                        <a href="admin.html" class="nav-link px-3 py-2 text-gray-300 hover:text-white font-medium">Admin Panel</a>
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center space-x-4">
+                    <a href="#contact" class="px-4 py-2 rounded-md text-primary-light border border-primary-light hover:bg-primary-dark hover:text-white hover:border-primary-dark transition duration-300 ease-in-out">
+                        Contact Us
+                    </a>
+                </div>
+                <div class="flex items-center md:hidden">
+                    <button id="mobile-menu-button" class="text-gray-300 hover:text-white">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-gray-900 shadow-lg">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="index.html" class="block px-3 py-2 rounded-md text-white bg-primary-dark font-medium">Home</a>
+                <a href="map.html" class="block px-3 py-2 rounded-md text-gray-300 hover:bg-gray-800 hover:text-white font-medium">Interactive Map</a>
+                <a href="admin.html" class="block px-3 py-2 rounded-md text-gray-300 hover:bg-gray-800 hover:text-white font-medium">Admin Panel</a>
+                <a href="#contact" class="block px-3 py-2 rounded-md text-gray-300 hover:bg-gray-800 hover:text-white font-medium">Contact Us</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section relative">
+        <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
+            <div class="md:w-2/3">
+                <h1 class="text-4xl md:text-5xl font-bold text-white mb-4 animate-fadeIn">
+                    Mapping India's Infrastructure
+                </h1>
+                <p class="text-xl text-gray-300 mb-8 animate-fadeIn" style="animation-delay: 0.2s">
+                    A comprehensive platform for visualizing and analyzing infrastructure distribution across India. Access real-time data on schools, hospitals, water resources, and power stations.
+                </p>
+                <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 animate-fadeIn" style="animation-delay: 0.4s">
+                    <a href="map.html" class="btn-primary px-6 py-3 rounded-md text-center font-medium">
+                        Explore the Map
+                    </a>
+                    <a href="#about" class="btn-outline px-6 py-3 rounded-md text-center font-medium">
+                        Learn More
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-dark to-transparent"></div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-16 md:py-24 bg-darker">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold text-white mb-4 animate-slideUp">Powerful Features</h2>
+                <p class="text-xl text-gray-400 max-w-3xl mx-auto animate-slideUp" style="animation-delay: 0.1s">
+                    Our platform provides a comprehensive set of tools to help you visualize and analyze infrastructure data across India.
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="feature-card p-6 animate-slideUp" style="animation-delay: 0.2s">
+                    <div class="bg-primary-dark bg-opacity-20 rounded-lg w-12 h-12 flex items-center justify-center mb-4">
+                        <i class="fas fa-map-marked-alt text-primary-light text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-2">Interactive Mapping</h3>
+                    <p class="text-gray-400">
+                        Explore infrastructure data with our interactive map interface. Zoom, pan, and click on markers to get detailed information.
+                    </p>
+                </div>
+                
+                <div class="feature-card p-6 animate-slideUp" style="animation-delay: 0.3s">
+                    <div class="bg-green-700 bg-opacity-20 rounded-lg w-12 h-12 flex items-center justify-center mb-4">
+                        <i class="fas fa-filter text-green-400 text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-2">Advanced Filtering</h3>
+                    <p class="text-gray-400">
+                        Filter data by resource type, location, and various metrics to focus on specific aspects of infrastructure.
+                    </p>
+                </div>
+                
+                <div class="feature-card p-6 animate-slideUp" style="animation-delay: 0.4s">
+                    <div class="bg-purple-700 bg-opacity-20 rounded-lg w-12 h-12 flex items-center justify-center mb-4">
+                        <i class="fas fa-chart-bar text-purple-400 text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-2">Data Visualization</h3>
+                    <p class="text-gray-400">
+                        View data in various formats including charts, graphs, and heat maps for better understanding of distribution patterns.
+                    </p>
+                </div>
+                
+                <div class="feature-card p-6 animate-slideUp" style="animation-delay: 0.5s">
+                    <div class="bg-red-700 bg-opacity-20 rounded-lg w-12 h-12 flex items-center justify-center mb-4">
+                        <i class="fas fa-database text-red-400 text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-2">Comprehensive Database</h3>
+                    <p class="text-gray-400">
+                        Access a vast database of schools, hospitals, water resources, and power stations across all states and union territories.
+                    </p>
+                </div>
+                
+                <div class="feature-card p-6 animate-slideUp" style="animation-delay: 0.6s">
+                    <div class="bg-yellow-700 bg-opacity-20 rounded-lg w-12 h-12 flex items-center justify-center mb-4">
+                        <i class="fas fa-file-export text-yellow-400 text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-2">Data Export</h3>
+                    <p class="text-gray-400">
+                        Export data in various formats for offline analysis, reporting, and integration with other systems.
+                    </p>
+                </div>
+                
+                <div class="feature-card p-6 animate-slideUp" style="animation-delay: 0.7s">
+                    <div class="bg-blue-700 bg-opacity-20 rounded-lg w-12 h-12 flex items-center justify-center mb-4">
+                        <i class="fas fa-bell text-blue-400 text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-2">Alerts & Notifications</h3>
+                    <p class="text-gray-400">
+                        Set up alerts for specific regions or resource types to stay informed about changes and updates.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="py-16 md:py-24">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="md:w-1/2 mb-10 md:mb-0 md:pr-12">
+                    <div class="relative">
+                        <div class="rounded-lg overflow-hidden shadow-xl animate-slideInRight">
+                            <img src="https://images.unsplash.com/photo-1524661135-423995f22d0b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1674&q=80" alt="Map of India" class="w-full h-auto">
+                            <div class="absolute inset-0 bg-gradient-overlay opacity-40 rounded-lg"></div>
+                        </div>
+                        <div class="absolute -bottom-5 -right-5 bg-primary-dark rounded-lg p-4 shadow-lg animate-slideInRight" style="animation-delay: 0.3s">
+                            <div class="text-white">
+                                <div class="font-bold text-2xl">29+</div>
+                                <div class="text-sm">States</div>
+                            </div>
+                        </div>
+                        <div class="absolute -top-5 -left-5 bg-gray-800 rounded-lg p-4 shadow-lg animate-slideInRight" style="animation-delay: 0.2s">
+                            <div class="text-white">
+                                <div class="font-bold text-2xl">8+</div>
+                                <div class="text-sm">Union Territories</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="md:w-1/2">
+                    <h2 class="text-3xl font-bold text-white mb-6 animate-slideUp">About the Project</h2>
+                    <div class="animate-slideUp" style="animation-delay: 0.1s">
+                        <p class="text-gray-400 mb-4">
+                            The Smart India Mapping project aims to create a comprehensive digital map of India's infrastructure resources, making this information accessible to policymakers, researchers, and citizens.
+                        </p>
+                        <p class="text-gray-400 mb-4">
+                            By visualizing the distribution of schools, hospitals, water resources, and power stations, we help identify gaps in infrastructure development and provide insights for better resource allocation.
+                        </p>
+                        <p class="text-gray-400 mb-6">
+                            Our platform is designed to be user-friendly and accessible, allowing users to explore data in various ways and gain insights into infrastructure distribution patterns across the country.
+                        </p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 animate-slideUp" style="animation-delay: 0.2s">
+                        <div class="bg-gray-800 rounded-lg p-4">
+                            <div class="font-bold text-2xl text-primary-light">24,000+</div>
+                            <div class="text-sm text-gray-400">Schools Mapped</div>
+                        </div>
+                        <div class="bg-gray-800 rounded-lg p-4">
+                            <div class="font-bold text-2xl text-green-400">4,000+</div>
+                            <div class="text-sm text-gray-400">Hospitals Mapped</div>
+                        </div>
+                        <div class="bg-gray-800 rounded-lg p-4">
+                            <div class="font-bold text-2xl text-blue-400">8,500+</div>
+                            <div class="text-sm text-gray-400">Water Resources</div>
+                        </div>
+                        <div class="bg-gray-800 rounded-lg p-4">
+                            <div class="font-bold text-2xl text-yellow-400">1,400+</div>
+                            <div class="text-sm text-gray-400">Power Stations</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="bg-gradient-to-r from-primary-dark to-purple-700 py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-3xl font-bold text-white mb-4 animate-slideUp">Ready to Explore India's Infrastructure?</h2>
+            <p class="text-xl text-gray-100 mb-8 max-w-3xl mx-auto animate-slideUp" style="animation-delay: 0.1s">
+                Start exploring our interactive map now to discover insights about infrastructure distribution across India.
+            </p>
+            <div class="animate-slideUp" style="animation-delay: 0.2s">
+                <a href="map.html" class="inline-block px-8 py-4 bg-white text-primary-dark rounded-md font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
+                    Launch Interactive Map
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="py-16 md:py-24 bg-darker">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold text-white mb-4 animate-slideUp">Contact Us</h2>
+                <p class="text-xl text-gray-400 max-w-3xl mx-auto animate-slideUp" style="animation-delay: 0.1s">
+                    Have questions or feedback? Reach out to our team and we'll get back to you as soon as possible.
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div class="animate-slideUp" style="animation-delay: 0.2s">
+                    <form class="space-y-6">
+                        <div>
+                            <label for="name" class="block text-sm font-medium text-gray-400 mb-1">Name</label>
+                            <input type="text" id="name" name="name" class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent text-white">
+                        </div>
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-gray-400 mb-1">Email</label>
+                            <input type="email" id="email" name="email" class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent text-white">
+                        </div>
+                        <div>
+                            <label for="subject" class="block text-sm font-medium text-gray-400 mb-1">Subject</label>
+                            <input type="text" id="subject" name="subject" class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent text-white">
+                        </div>
+                        <div>
+                            <label for="message" class="block text-sm font-medium text-gray-400 mb-1">Message</label>
+                            <textarea id="message" name="message" rows="5" class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent text-white resize-none"></textarea>
+                        </div>
+                        <div>
+                            <button type="submit" class="w-full btn-primary px-6 py-3 rounded-md font-medium">
+                                Send Message
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="animate-slideUp" style="animation-delay: 0.3s">
+                    <div class="bg-gray-800 rounded-lg p-8 h-full">
+                        <h3 class="text-xl font-semibold text-white mb-6">Contact Information</h3>
+                        
+                        <div class="space-y-6">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-primary-dark bg-opacity-20 rounded-lg w-10 h-10 flex items-center justify-center">
+                                        <i class="fas fa-map-marker-alt text-primary-light"></i>
+                                    </div>
+                                </div>
+                                <div class="ml-4">
+                                    <h4 class="text-white font-medium">Address</h4>
+                                    <p class="text-gray-400 mt-1">Department of Science & Technology, Technology Bhavan, New Mehrauli Road, New Delhi-110016</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-primary-dark bg-opacity-20 rounded-lg w-10 h-10 flex items-center justify-center">
+                                        <i class="fas fa-envelope text-primary-light"></i>
+                                    </div>
+                                </div>
+                                <div class="ml-4">
+                                    <h4 class="text-white font-medium">Email</h4>
+                                    <p class="text-gray-400 mt-1">smartindiamapping@example.gov.in</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-primary-dark bg-opacity-20 rounded-lg w-10 h-10 flex items-center justify-center">
+                                        <i class="fas fa-phone-alt text-primary-light"></i>
+                                    </div>
+                                </div>
+                                <div class="ml-4">
+                                    <h4 class="text-white font-medium">Phone</h4>
+                                    <p class="text-gray-400 mt-1">+91 11 2654 6320</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-primary-dark bg-opacity-20 rounded-lg w-10 h-10 flex items-center justify-center">
+                                        <i class="fas fa-clock text-primary-light"></i>
+                                    </div>
+                                </div>
+                                <div class="ml-4">
+                                    <h4 class="text-white font-medium">Working Hours</h4>
+                                    <p class="text-gray-400 mt-1">Monday - Friday: 9:00 AM - 5:30 PM</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-8">
+                            <h4 class="text-white font-medium mb-4">Follow Us</h4>
+                            <div class="flex space-x-4">
+                                <a href="#" class="bg-primary-dark bg-opacity-20 rounded-lg w-10 h-10 flex items-center justify-center text-primary-light hover:bg-primary-dark hover:text-white transition-colors duration-300">
+                                    <i class="fab fa-twitter"></i>
+                                </a>
+                                <a href="#" class="bg-primary-dark bg-opacity-20 rounded-lg w-10 h-10 flex items-center justify-center text-primary-light hover:bg-primary-dark hover:text-white transition-colors duration-300">
+                                    <i class="fab fa-facebook-f"></i>
+                                </a>
+                                <a href="#" class="bg-primary-dark bg-opacity-20 rounded-lg w-10 h-10 flex items-center justify-center text-primary-light hover:bg-primary-dark hover:text-white transition-colors duration-300">
+                                    <i class="fab fa-instagram"></i>
+                                </a>
+                                <a href="#" class="bg-primary-dark bg-opacity-20 rounded-lg w-10 h-10 flex items-center justify-center text-primary-light hover:bg-primary-dark hover:text-white transition-colors duration-300">
+                                    <i class="fab fa-linkedin-in"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-10">
+                <div class="md:col-span-2">
+                    <a href="index.html" class="flex items-center mb-4">
+                        <i class="fas fa-map-marked-alt text-primary-light text-2xl mr-3"></i>
+                        <span class="text-xl font-bold">Smart India <span class="text-primary-light">Mapping</span></span>
+                    </a>
+                    <p class="text-gray-400 mb-4">
+                        A comprehensive platform for visualizing and analyzing infrastructure distribution across India.
+                    </p>
+                    <p class="text-gray-500 text-sm">
+                        © 2023 Smart India Mapping. All rights reserved.
+                    </p>
+                </div>
+                
+                <div>
+                    <h4 class="text-white text-lg font-medium mb-4">Quick Links</h4>
+                    <ul class="space-y-2">
+                        <li><a href="index.html" class="text-gray-400 hover:text-primary-light transition-colors duration-300">Home</a></li>
+                        <li><a href="map.html" class="text-gray-400 hover:text-primary-light transition-colors duration-300">Interactive Map</a></li>
+                        <li><a href="#about" class="text-gray-400 hover:text-primary-light transition-colors duration-300">About</a></li>
+                        <li><a href="#features" class="text-gray-400 hover:text-primary-light transition-colors duration-300">Features</a></li>
+                        <li><a href="#contact" class="text-gray-400 hover:text-primary-light transition-colors duration-300">Contact</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-white text-lg font-medium mb-4">Resources</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-primary-light transition-colors duration-300">Documentation</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-primary-light transition-colors duration-300">API Access</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-primary-light transition-colors duration-300">Data Sources</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-primary-light transition-colors duration-300">Privacy Policy</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-primary-light transition-colors duration-300">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 mt-10 pt-8 flex flex-col md:flex-row justify-between items-center">
+                <p class="text-gray-500 text-sm mb-4 md:mb-0">
+                    Designed and developed with ❤️ for Digital India
+                </p>
+                <div class="flex space-x-6">
+                    <a href="#" class="text-gray-400 hover:text-primary-light transition-colors duration-300">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-primary-light transition-colors duration-300">
+                        <i class="fab fa-facebook-f"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-primary-light transition-colors duration-300">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-primary-light transition-colors duration-300">
+                        <i class="fab fa-linkedin-in"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile menu toggle
+        document.getElementById('mobile-menu-button').addEventListener('click', function() {
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenu.classList.toggle('hidden');
+        });
+        
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                
+                const targetId = this.getAttribute('href');
+                if (targetId === '#') return;
+                
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 80, // Offset for fixed header
+                        behavior: 'smooth'
+                    });
+                    
+                    // Close mobile menu if open
+                    const mobileMenu = document.getElementById('mobile-menu');
+                    if (!mobileMenu.classList.contains('hidden')) {
+                        mobileMenu.classList.add('hidden');
+                    }
+                }
+            });
+        });
+        
+        // Animation on scroll
+        document.addEventListener('DOMContentLoaded', function() {
+            const animatedElements = document.querySelectorAll('.animate-slideUp, .animate-slideInRight');
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translate(0, 0)';
+                    }
+                });
+            }, {
+                threshold: 0.1
+            });
+            
+            animatedElements.forEach(element => {
+                element.style.opacity = '0';
+                element.style.transform = element.classList.contains('animate-slideUp') 
+                    ? 'translateY(30px)' 
+                    : 'translateX(50px)';
+                element.style.transition = 'opacity 0.6s ease-out, transform 0.6s ease-out';
+                
+                observer.observe(element);
+            });
+        });
+    </script>
+</body>
+</html> 

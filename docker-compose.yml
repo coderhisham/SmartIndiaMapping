@@ -1,0 +1,41 @@
+version: '3'
+
+services:
+  webserver:
+    build: .
+    container_name: smartindia_web
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html/
+    depends_on:
+      - db
+    networks:
+      - smartindia-network
+    environment:
+      - TZ=UTC
+
+  db:
+    image: mysql:5.7
+    container_name: smartindia_db
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: smart_india_mapping
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_USER: smartuser
+      MYSQL_PASSWORD: smartpass
+      TZ: UTC
+    volumes:
+      - ./database/setup.sql:/docker-entrypoint-initdb.d/setup.sql
+      - smartindia_data:/var/lib/mysql
+    networks:
+      - smartindia-network
+    command: --default-authentication-plugin=mysql_native_password
+
+networks:
+  smartindia-network:
+    driver: bridge
+
+volumes:
+  smartindia_data: 
