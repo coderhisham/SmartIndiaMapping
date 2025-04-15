@@ -172,7 +172,7 @@
             .then(response => response.json())
             .then(data => {
                 if (!data.loggedIn) {
-                    window.location.href = 'admin.html?error=auth';
+                    window.location.href = 'admin.php?error=auth';
                 } else {
                     // Load admin panel data
                     loadDashboardData();
@@ -180,7 +180,7 @@
             })
             .catch(error => {
                 console.error('Error checking login status:', error);
-                window.location.href = 'admin.html?error=auth';
+                window.location.href = 'admin.php?error=auth';
             });
 
         // Placeholder function to load dashboard data

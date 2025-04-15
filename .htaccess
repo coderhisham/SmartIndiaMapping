@@ -1,0 +1,12 @@
+# Prevent direct access to admin-content.html and admin.html
+<FilesMatch "^(admin-content\.html|admin\.html)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Redirects
+RewriteEngine On
+# Redirect admin.html to admin.php
+RewriteRule ^admin\.html$ admin.php [R=301,L]
+# Redirect login.html to login.php
+RewriteRule ^login\.html$ login.php [R=301,L] 
