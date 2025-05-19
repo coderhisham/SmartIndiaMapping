@@ -1,5 +1,6 @@
 # Smart India Mapping
 (Just a random college assignment done for grades. Want more innovative projects ? roam around my GitHub account)
+
 A comprehensive application for mapping and analyzing infrastructure distribution across India, including schools, hospitals, water resources, and power stations. 
 
 ## Features
